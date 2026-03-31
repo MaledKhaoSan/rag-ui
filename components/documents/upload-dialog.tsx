@@ -286,13 +286,13 @@ export function UploadDialog({ onUploadComplete, children, knowledgeBase }: Uplo
                                         <div key={index} className={cn(
                                             "flex items-center gap-3 p-2 rounded-md border text-sm",
                                             fileStatus.status === "processing" ? "border-primary bg-primary/5" :
-                                                fileStatus.status === "success" ? "border-emerald-500/20 bg-emerald-500/5" :
+                                                fileStatus.status === "success" ? "border-primary/25 bg-primary/5" :
                                                     fileStatus.status === "error" ? "border-destructive/20 bg-destructive/5" :
                                                         "border-border bg-card"
                                         )}>
                                             <div className="shrink-0">
                                                 {fileStatus.status === "processing" ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> :
-                                                    fileStatus.status === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> :
+                                                    fileStatus.status === "success" ? <CheckCircle2 className="w-4 h-4 text-primary" /> :
                                                         fileStatus.status === "error" ? <AlertCircle className="w-4 h-4 text-destructive" /> :
                                                             <FileText className="w-4 h-4 text-muted-foreground" />}
                                             </div>

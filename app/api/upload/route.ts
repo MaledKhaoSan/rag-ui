@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ragUrl } from "@/lib/rag-api";
 
 export const runtime = "nodejs";
 
@@ -6,13 +7,11 @@ export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes timeout
 
 export async function POST(req: NextRequest) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
     try {
         const formData = await req.formData();
 
         // Forward the request to the backend
-        const response = await fetch(`${apiUrl}/api/v1/rag/upload-process`, {
+        const response = await fetch(ragUrl("/upload-process"), {
             method: "POST",
             body: formData,
         });

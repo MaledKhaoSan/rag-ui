@@ -1,0 +1,20 @@
+{
+    "success": true,
+    "knowledge_base": "user_manual_kb",
+    "page": 1,
+    "page_size": 2,
+    "total": 7,
+    "total_pages": 4,
+    "data": [
+        {
+            "file_name": "user_manual_kb/original/4a2630b2-694c-40b3-9630-fb9e5f5a468c.pdf",
+            "size": 3159997,
+            "last_modified": "2026-03-22T21:09:53.386000+00:00"
+        },
+        {
+            "file_name": "user_manual_kb/original/100aa183-7bc2-4f1b-9572-89110c6d2073.pdf",
+            "size": 531172,
+            "last_modified": "2026-03-22T21:09:08.476000+00:00"
+        }
+    ]
+}

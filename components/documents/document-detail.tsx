@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DocumentInfo } from "./document-list";
 import { cn } from "@/lib/utils";
+import { ragUrl } from "@/lib/rag-api";
 import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -51,15 +52,18 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
 
         setIsReprocessing(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-            const res = await fetch(`${apiUrl}/api/v1/rag/re-process`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const kb =
+                selectedKBs.length === 1
+                    ? selectedKBs[0]
+                    : document.knowledge_base;
+            const res = await fetch(ragUrl("/re-process"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     file_id: document.file_id,
                     content,
-                    ...(selectedKBs.length === 1 ? { knowledge_base: selectedKBs[0] } : {})
-                })
+                    ...(kb ? { knowledge_base: kb } : {}),
+                }),
             });
             const data = await res.json();
             if (data.success) {
@@ -78,16 +82,30 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
 
     if (!document) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/5">
-                <FileText className="w-16 h-16 mb-4 opacity-20" />
-                <p>Select a document to view details</p>
+            <div className="flex h-full flex-col items-center justify-center bg-muted/5 px-4 text-center text-muted-foreground">
+                <FileText className="mb-3 h-12 w-12 text-primary/30" />
+                <h3 className="mb-1 font-medium text-foreground">
+                    เลือกไฟล์เพื่อดูรายละเอียด
+                </h3>
+                <p className="max-w-xs text-sm">
+                    แสดงเมตาดาต้า ชิ้นส่วน (chunks) และเนื้อหาที่ประมวลผลแล้ว
+                </p>
             </div>
         );
     }
 
-    const { file_info, chunks, markdown, file_id, filename } = document;
+    const { markdown, file_id, filename } = document;
+    const file_info = document.file_info || {};
+    const chunks = document.chunks || {
+        parent_collection: [] as unknown[],
+        child_collection: [] as unknown[],
+    };
 
-    const displayFilename = chunks?.parent_collection?.[0]?.file_name || filename || file_info.file_name;
+    const displayFilename =
+        chunks?.parent_collection?.[0]?.file_name ||
+        filename ||
+        file_info.file_name ||
+        file_id;
 
     return (
         <div className="h-full flex flex-col bg-background/50 overflow-y-auto">
@@ -107,14 +125,31 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
                                     {file_id}
                                 </Badge>
                             </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                 <div className="flex items-center gap-1.5">
-                                    <Calendar className="w-3.5 h-3.5" />
-                                    <span>{new Date(file_info.last_modified).toLocaleString()}</span>
+                                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                    <span>
+                                        {file_info.last_modified
+                                            ? new Date(
+                                                  file_info.last_modified
+                                              ).toLocaleString("th-TH")
+                                            : document.upload_date
+                                              ? new Date(
+                                                    document.upload_date
+                                                ).toLocaleString("th-TH")
+                                              : "—"}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                    <Database className="w-3.5 h-3.5" />
-                                    <span>{(file_info.size / 1024 / 1024).toFixed(2)} MB</span>
+                                    <Database className="w-3.5 h-3.5 shrink-0" />
+                                    <span>
+                                        {typeof file_info.size === "number"
+                                            ? `${(file_info.size / 1024 / 1024).toFixed(2)} MB`
+                                            : typeof document.file_size ===
+                                                "number"
+                                              ? `${(document.file_size / 1024 / 1024).toFixed(2)} MB`
+                                              : "—"}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -122,11 +157,11 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
                     <div className="flex gap-2">
                         <Badge variant="outline" className="h-6 gap-1.5 border-amber-500/20 text-amber-600 bg-amber-500/5">
                             <Box className="w-3.5 h-3.5" />
-                            {chunks.parent_collection.length} Parent Chunks
+                            {chunks.parent_collection?.length ?? 0} Parent Chunks
                         </Badge>
                         <Badge variant="outline" className="h-6 gap-1.5 border-blue-500/20 text-blue-600 bg-blue-500/5">
                             <Layers className="w-3.5 h-3.5" />
-                            {chunks.child_collection.length} Child Chunks
+                            {chunks.child_collection?.length ?? 0} Child Chunks
                         </Badge>
                     </div>
                 </div>
@@ -360,7 +395,7 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <CardTitle className="flex items-center gap-2">
-                                            <FileText className="w-5 h-5 text-slate-500" />
+                                            <FileText className="w-5 h-5 text-primary/70" />
                                             Markdown Content
                                         </CardTitle>
                                         <div className="flex items-center rounded-lg border border-border/50 bg-muted/30 p-0.5">
@@ -387,7 +422,7 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
 
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button size="sm" className="h-8 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoadingContent || isReprocessing}>
+                                            <Button size="sm" className="h-8 gap-2 bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoadingContent || isReprocessing}>
                                                 {isReprocessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
                                                 Reprocess & Save
                                             </Button>
@@ -401,7 +436,7 @@ export function DocumentDetail({ document, onBack }: DocumentDetailProps) {
                                             </AlertDialogHeader>
                                             <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={handleReprocess} className="bg-emerald-600 hover:bg-emerald-700">
+                                                <AlertDialogAction onClick={handleReprocess} className="bg-primary text-primary-foreground hover:bg-primary/90">
                                                     Yes, Reprocess
                                                 </AlertDialogAction>
                                             </AlertDialogFooter>
