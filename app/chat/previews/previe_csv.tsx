@@ -228,7 +228,7 @@ export function PreviesCsv({
 
     return (
         <div className={cn("flex h-full min-h-0 flex-col", className)}>
-            <div className="shrink-0 border-b border-border bg-background px-4 py-3">
+            <div className="shrink-0 bg-background px-4 pt-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-foreground">
@@ -259,7 +259,7 @@ export function PreviesCsv({
                                 type="button"
                                 onClick={() => setActiveSheet(idx)}
                                 className={cn(
-                                    "rounded-full border px-3 py-1 text-xs transition-colors",
+                                    "rounded-xs border px-3 py-1 text-xs transition-colors",
                                     idx === activeSheet
                                         ? "border-primary bg-primary/10 text-primary"
                                         : "border-border bg-background text-muted-foreground hover:bg-muted/40"
@@ -300,7 +300,7 @@ export function PreviesCsv({
                     </div>
                 ) : (
                     <div className="min-w-max p-4">
-                        <div className="overflow-hidden rounded-lg border border-border bg-background">
+                        <div className="overflow-hidden rounded-xs border border-border bg-background">
                             <table className="w-full border-collapse text-xs">
                                 <thead className="sticky top-0 z-10 bg-muted/70 backdrop-blur">
                                     <tr>
@@ -326,8 +326,8 @@ export function PreviesCsv({
                                                     v == null
                                                         ? ""
                                                         : typeof v === "string"
-                                                          ? v
-                                                          : String(v);
+                                                            ? v
+                                                            : String(v);
                                                 return (
                                                     <td
                                                         key={ci}
@@ -350,9 +350,9 @@ export function PreviesCsv({
                                 {totalRows === 0
                                     ? "0"
                                     : `${safePage * pageSize + 1}–${Math.min(
-                                          (safePage + 1) * pageSize,
-                                          totalRows
-                                      )}`}{" "}
+                                        (safePage + 1) * pageSize,
+                                        totalRows
+                                    )}`}{" "}
                                 of {totalRows.toLocaleString()}
                             </span>
                             <div className="flex items-center gap-1">
