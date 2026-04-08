@@ -198,14 +198,24 @@ const markdownComponents: Components = {
             if (match) {
                 const fileId = match[1];
                 const page = match[2];
+                const nameGuess =
+                    typeof children === "string"
+                        ? children
+                        : Array.isArray(children)
+                          ? children.filter((c) => typeof c === "string").join("")
+                          : fileId;
                 return (
                     <button
                         type="button"
-                        onClick={() =>
-                            toast("Opening Document PDF", {
-                                description: `File ID: ${fileId}${page ? ` at Page: ${page}` : ""}`,
-                            })
-                        }
+                        onClick={() => {
+                            const hash = page ? `#page=${encodeURIComponent(page)}` : "";
+                            window.open(
+                                `/chat/previews/${encodeURIComponent(fileId)}?kb=local&name=${encodeURIComponent(
+                                    `${nameGuess}`
+                                )}${hash}`,
+                                "_blank"
+                            );
+                        }}
                         className="inline-flex cursor-pointer items-center gap-1 text-sm bg-white border-primary/20 px-2 border rounded-full py-0.5 font-medium text-black decoration-primary/30 underline-offset-4 transition-colors hover:text-primary/80 hover:decoration-primary"
                     >
                         <img
@@ -231,7 +241,15 @@ const markdownComponents: Components = {
             </a>
         );
     },
-    code({ inline, className, children, ...props }) {
+    code: ((props) => {
+        type MarkdownCodeProps =
+            NonNullable<Components["code"]> extends React.ComponentType<infer P>
+                ? P
+                : never;
+        const p = props as unknown as MarkdownCodeProps;
+        const inline = Boolean((p as unknown as { inline?: boolean }).inline);
+        const className = (p as unknown as { className?: string }).className;
+        const children = (p as unknown as { children?: React.ReactNode }).children;
         const match = /language-(\w+)/.exec(className || "");
         if (!inline && match?.[1] === "mermaid") {
             return (
@@ -245,7 +263,6 @@ const markdownComponents: Components = {
                         {match ? match[1] : "code"}
                     </div>
                     <SyntaxHighlighter
-                        {...props}
                         style={vscDarkPlus as Record<string, React.CSSProperties>}
                         language={match ? match[1] : "text"}
                         PreTag="div"
@@ -258,7 +275,6 @@ const markdownComponents: Components = {
         }
         return (
             <code
-                {...props}
                 className={cn(
                     "rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-primary dark:bg-muted",
                     className
@@ -267,7 +283,7 @@ const markdownComponents: Components = {
                 {children}
             </code>
         );
-    },
+    }) as Components["code"],
 };
 
 export function ChatView({ onChatTitleChange }: ChatViewProps) {
@@ -575,6 +591,38 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                                                     (doc, docIndex) => (
                                                         <Card
                                                             key={docIndex}
+                                                            onClick={() => {
+                                                                const kb =
+                                                                    typeof doc.metadata?.knowledge_base ===
+                                                                    "string"
+                                                                        ? String(doc.metadata.knowledge_base)
+                                                                        : selectedKBs.length === 1
+                                                                          ? selectedKBs[0]
+                                                                          : "local";
+                                                                const name =
+                                                                    doc.file_name ||
+                                                                    `${doc.file_id}.pdf`;
+                                                                const directUrl =
+                                                                    typeof doc.metadata?.file_url ===
+                                                                        "string" &&
+                                                                    doc.metadata.file_url.trim()
+                                                                        ? doc.metadata.file_url.trim()
+                                                                        : typeof doc.metadata?.minio_url ===
+                                                                              "string" &&
+                                                                            doc.metadata.minio_url.trim()
+                                                                          ? doc.metadata.minio_url.trim()
+                                                                          : "";
+                                                                window.open(
+                                                                    `/chat/previews/${encodeURIComponent(
+                                                                        doc.file_id
+                                                                    )}?kb=${encodeURIComponent(
+                                                                        kb
+                                                                    )}&name=${encodeURIComponent(
+                                                                        name
+                                                                    )}${directUrl ? `&url=${encodeURIComponent(directUrl)}` : ""}`,
+                                                                    "_blank"
+                                                                );
+                                                            }}
                                                             className="cursor-pointer border-border/60 bg-muted/40 transition-all hover:border-primary/20 hover:bg-muted group dark:border-border dark:bg-muted/50 dark:hover:bg-muted"
                                                         >
                                                             <CardContent className="p-3">
