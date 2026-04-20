@@ -28,8 +28,8 @@ function DocumentViewInner() {
             phase === "collection" && openedKb
                 ? openedKb
                 : selectedKBs.length === 1
-                  ? selectedKBs[0]
-                  : null;
+                    ? selectedKBs[0]
+                    : null;
 
         if (!kbName) {
             setDocuments([]);
@@ -118,10 +118,20 @@ function DocumentViewInner() {
     }
 
     return (
-        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
+        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background px-8">
             <KbDetailTopNav kbName={openedKb!} onBack={closeCollection} />
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border bg-muted/15">
-                <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden px-4 md:px-12">
+            <DocumentList
+                documents={documents}
+                selectedFile={null}
+                onSelectFile={(id) => {
+                    if (id) openFileDetail(id);
+                }}
+                onUploadComplete={fetchDocuments}
+                isLoading={isLoading}
+            />
+
+            {/* <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-border bg-muted/15">
+                <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:px-12">
                     <DocumentList
                         documents={documents}
                         selectedFile={null}
@@ -132,7 +142,7 @@ function DocumentViewInner() {
                         isLoading={isLoading}
                     />
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 }

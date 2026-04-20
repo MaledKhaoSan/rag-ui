@@ -130,8 +130,8 @@ export function KbDetailTopNav({
         sizeGb === 0 && chunks === 0
             ? "—"
             : sizeGb < 0.01
-              ? "<0.01 GB"
-              : `${sizeGb.toFixed(1)} GB`;
+                ? "<0.01 GB"
+                : `${sizeGb.toFixed(1)} GB`;
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -151,7 +151,7 @@ export function KbDetailTopNav({
     return (
         <header
             className={cn(
-                "shrink-0 border-b border-border bg-card/90 px-4 py-4 backdrop-blur-sm dark:bg-card/60 sm:px-6 sm:py-5",
+                "shrink-0 border-b border-border bg-card/90 px-4! py-4 backdrop-blur-sm dark:bg-card/60 sm:px-6 sm:py-5",
                 className
             )}
             aria-label="รายละเอียดฐานความรู้"
@@ -159,7 +159,7 @@ export function KbDetailTopNav({
             <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                 <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     className="-ml-2 h-9 w-fit shrink-0 gap-1 text-muted-foreground hover:text-foreground sm:-ml-1"
                     onClick={onBack}
@@ -253,16 +253,6 @@ export function KbDetailTopNav({
                         <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                             {formatKbTitle(kb.name)}
                         </h1>
-                        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                            กำหนดแหล่งที่มาและพารามิเตอร์ RAG สำหรับคลังนี้
-                        </p>
-                        <p className="mt-1 truncate text-xs text-muted-foreground/90">
-                            <span className="font-medium text-muted-foreground">
-                                RAG
-                            </span>{" "}
-                            · {kb.parent_collection || kb.name} /{" "}
-                            {kb.child_collection || "chunks"}
-                        </p>
 
                         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
                             <KbMetricCard

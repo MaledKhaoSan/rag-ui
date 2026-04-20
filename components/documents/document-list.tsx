@@ -440,9 +440,7 @@ export function DocumentList({
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-
-                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"></div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
                     <span>
