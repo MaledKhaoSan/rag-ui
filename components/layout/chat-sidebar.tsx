@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useChatShell } from "./chat-shell-context";
 import {
     Home,
     LayoutDashboard,
@@ -29,7 +30,7 @@ export interface ChatSidebarProps {
     onToggleCollapse: () => void;
     onNewChat: () => void;
     view: ChatShellView;
-    onViewChange: (v: ChatShellView) => void;
+    onViewChange: (view: ChatShellView) => void;
     /** Close mobile sheet */
     onClose?: () => void;
 }
@@ -42,6 +43,7 @@ export function ChatSidebar({
     onViewChange,
     onClose,
 }: ChatSidebarProps) {
+    const { sessions, chatSessionId, loadChat, deleteChat } = useChatShell();
     const router = useRouter();
 
     const widthClass = isCollapsed ? "w-[72px]" : "w-[280px]";
@@ -178,24 +180,41 @@ export function ChatSidebar({
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Recent
                             </p>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onViewChange("chat");
-                                    afterNav();
-                                }}
-                                className={cn(
-                                    "w-full rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-                                    view === "chat"
-                                        ? "bg-accent text-accent-foreground"
-                                        : "text-sidebar-foreground hover:bg-sidebar-accent"
-                                )}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare className="h-4 w-4 shrink-0" />
-                                    Current conversation
-                                </div>
-                            </button>
+                            {sessions.map((session) => (
+                                <button
+                                    key={session.id}
+                                    type="button"
+                                    onClick={() => {
+                                        loadChat(session.id);
+                                        afterNav();
+                                    }}
+                                    className={cn(
+                                        "w-full rounded-lg px-3 py-2.5 text-left text-sm flex items-center justify-between transition-colors",
+                                        session.id === chatSessionId
+                                            ? "bg-accent text-accent-foreground"
+                                            : "text-sidebar-foreground hover:bg-sidebar-accent",
+                                    )}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4 shrink-0" />
+                                        <span className="truncate max-w-[150px]">{session.title || "Untitled"}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteChat(session.id);
+                                        }}
+                                        className="p-1 hover:text-red-500"
+                                        aria-label="Delete chat"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </button>
+                            ))}
+
                         </div>
                     )}
                 </div>
@@ -274,10 +293,10 @@ export function ChatSidebar({
                                     {!isCollapsed && (
                                         <div className="min-w-0">
                                             <div className="truncate text-sm font-semibold text-foreground">
-                                                Guest
+                                                Nattapat
                                             </div>
                                             <div className="truncate text-xs font-medium text-muted-foreground">
-                                                Tester
+                                                User
                                             </div>
                                         </div>
                                     )}

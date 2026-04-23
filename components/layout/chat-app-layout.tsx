@@ -24,7 +24,7 @@ function ChatAppLayoutContent({ children }: { children: ReactNode }) {
     const isDocumentDetail = pathname.startsWith("/chat/documents/");
     const kbOnDetail = searchParams.get("kb") ?? "";
 
-    const { view, setView, chatTitle, chatSessionKey, newChat } =
+    const { view, setView, chatTitle, chatSessionId, newChat } =
         useChatShell();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -45,8 +45,8 @@ function ChatAppLayoutContent({ children }: { children: ReactNode }) {
     const headerCenterTitle = isDocumentDetail
         ? "รายละเอียดไฟล์"
         : view === "documents"
-          ? "Admin Panel"
-          : chatTitle;
+            ? "Admin Panel"
+            : chatTitle;
 
     const navigateFromDetail = useCallback(
         (next: ChatShellView) => {
@@ -97,7 +97,7 @@ function ChatAppLayoutContent({ children }: { children: ReactNode }) {
                 >
                     <ChatSidebar
                         isCollapsed={false}
-                        onToggleCollapse={() => {}}
+                        onToggleCollapse={() => { }}
                         onNewChat={handleNewChat}
                         view={sidebarView}
                         onViewChange={onViewChange}
