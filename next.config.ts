@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: "/minio-assets/:path*",
+        destination: "http://localhost:9001/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ragUrl } from "@/lib/rag-api";
 import { PreviesCsv } from "../previe_csv";
@@ -38,7 +38,14 @@ function PreviewInner() {
         );
     }
 
-    if (ext === "pdf") {
+    const [hash, setHash] = useState("");
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setHash(window.location.hash);
+        }
+    }, []);
+
+    if (ext === "pdf" || !ext) {
         return (
             <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
                 <div className="shrink-0 border-b border-border bg-background px-4 py-3">
@@ -52,7 +59,7 @@ function PreviewInner() {
                 <div className="min-h-0 flex-1 bg-muted/10 p-3">
                     <iframe
                         title={fileName}
-                        src={fileUrl}
+                        src={`${fileUrl}${hash}`}
                         className={cn(
                             "h-full w-full rounded-lg border border-border bg-background"
                         )}
