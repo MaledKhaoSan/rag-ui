@@ -118,7 +118,7 @@ function DocumentViewInner() {
     }
 
     return (
-        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background px-8">
+        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background px-4 md:px-8">
             <KbDetailTopNav kbName={openedKb!} onBack={closeCollection} />
             <DocumentList
                 documents={documents}

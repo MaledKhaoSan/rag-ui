@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
     Send,
     ChevronRight,
     FileText,
+    FileSpreadsheet,
     Loader2,
     BrainCircuit,
     MessageSquare,
@@ -15,6 +16,7 @@ import {
     Settings2,
     Upload,
     Search as SearchIcon,
+    Trash,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -43,6 +45,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useKB } from "@/components/kb-context";
 import { Toaster, toast } from "sonner";
+import { useChatShell } from "@/components/layout/chat-shell-context";
 import mermaid from "mermaid";
 
 mermaid.initialize({
@@ -122,13 +125,13 @@ export interface ChatViewProps {
 }
 
 const SUGGESTIONS = [
-    "สรุปประเด็นจากการประชุมล่าสุด",
-    "มีอัปเดตโครงการล่าสุดอะไรบ้าง",
-    "ค้นหาเอกสารเกี่ยวกับงบประมาณไตรมาส",
-    "เปรียบเทียบรายงานฉบับล่าสุดสองฉบับ",
+    "ระบบ Single Window @ Maine Department แบ่งเมนูออกเป็นกี่ประเภทหลัก",
+    "เอกสารที่ต้องใช้ลงทะเบียนนิติบุคคลในระบบ SW@MD",
+    "ขั้นตอนชำระค่าปรับ กรณีเรือไม่แจ้งเทียบท่าเกิน 24 ชม.",
+    "ช่องทางการชำระเงินค่าบริการนำร่องผ่านระบบอิเล็กทรอนิกส์",
 ];
 
-const markdownComponents: Components = {
+const getMarkdownComponents = (currentKb: string): Components => ({
     ul: ({ ...props }) => (
         <ul className="list-disc space-y-1 pl-4" {...props} />
     ),
@@ -137,13 +140,24 @@ const markdownComponents: Components = {
     ),
     li: ({ ...props }) => <li className="pl-1" {...props} />,
     img: ({ src, alt, ...props }) => {
+        if (typeof src === "string" && src.startsWith("#file:")) {
+            const fileId = src.replace("#file:", "").split("?")[0];
+            return (
+                <div className="my-4 p-4 border border-dashed rounded-lg bg-muted/50 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    <span>ไม่สามารถแสดงภาพตัวอย่างเอกสารได้ ({fileId})</span>
+                </div>
+            );
+        }
+
         const fileName =
             src && typeof src === "string" && !src.endsWith(".png")
                 ? `${src}.png`
                 : src;
+        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
         const fullSrc =
             typeof src === "string" && !src.startsWith("http")
-                ? `http://localhost:9001/api/v1/buckets/local-document-bucket/objects/download?preview=true&prefix=user_manual_kb%2Fassets%2F${fileName}&version_id=null`
+                ? `${apiBase}/api/v1/rag/assets/${currentKb}/${fileName}`
                 : (src as string);
         return (
             <img
@@ -202,15 +216,20 @@ const markdownComponents: Components = {
                     typeof children === "string"
                         ? children
                         : Array.isArray(children)
-                          ? children.filter((c) => typeof c === "string").join("")
-                          : fileId;
+                            ? children.filter((c) => typeof c === "string").join("")
+                            : fileId;
+                const nameGuessStr = typeof nameGuess === "string" ? nameGuess.toLowerCase() : "";
+                const isExcel = nameGuessStr.endsWith(".xlsx") || nameGuessStr.endsWith(".xls") || nameGuessStr.endsWith(".csv");
+                const iconSrc = isExcel
+                    ? "https://cdn-icons-png.flaticon.com/256/732/732220.png"
+                    : "https://cdn-icons-png.flaticon.com/256/337/337946.png";
                 return (
                     <button
                         type="button"
                         onClick={() => {
                             const hash = page ? `#page=${encodeURIComponent(page)}` : "";
                             window.open(
-                                `/chat/previews/${encodeURIComponent(fileId)}?kb=local&name=${encodeURIComponent(
+                                `/chat/previews/${encodeURIComponent(fileId)}?kb=${encodeURIComponent(currentKb)}&name=${encodeURIComponent(
                                     `${nameGuess}`
                                 )}${hash}`,
                                 "_blank"
@@ -219,8 +238,8 @@ const markdownComponents: Components = {
                         className="inline-flex cursor-pointer items-center gap-1 text-sm bg-white border-primary/20 px-2 border rounded-full py-0.5 font-medium text-black decoration-primary/30 underline-offset-4 transition-colors hover:text-primary/80 hover:decoration-primary"
                     >
                         <img
-                            src="https://cdn-icons-png.flaticon.com/256/337/337946.png"
-                            alt="PDF"
+                            src={iconSrc}
+                            alt={isExcel ? "Excel" : "PDF"}
                             className="size-3 my-0!"
                             decoding="async"
                         />
@@ -241,21 +260,39 @@ const markdownComponents: Components = {
             </a>
         );
     },
-    code: ((props) => {
-        type MarkdownCodeProps =
-            NonNullable<Components["code"]> extends React.ComponentType<infer P>
-                ? P
-                : never;
-        const p = props as unknown as MarkdownCodeProps;
-        const inline = Boolean((p as unknown as { inline?: boolean }).inline);
-        const className = (p as unknown as { className?: string }).className;
-        const children = (p as unknown as { children?: React.ReactNode }).children;
+
+    pre: ({ children, ...props }) => {
+        // ตรวจสอบว่าข้างในเป็น Code Block หรือไม่
+        const childArray = React.Children.toArray(children);
+        const child = childArray[0] as React.ReactElement;
+
+        // ถ้าข้างในเป็น <code> ให้ข้ามการสร้าง <pre> ไปเลย เพราะเราจัดการ UI ไว้ใน code component แล้ว
+        if (
+            React.isValidElement(child) &&
+            typeof (child.props as { className?: unknown }).className === "string"
+        ) {
+            return <>{children}</>;
+        }
+
+        // ถ้าเป็น <pre> ธรรมดา
+        return (
+            <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4" {...props}>
+                {children}
+            </pre>
+        );
+    },
+
+    code: (({ inline, className, children, ...props }: any) => {
         const match = /language-(\w+)/.exec(className || "");
+
+        // ก. กรณีเป็น Mermaid ให้โยนเข้า Component <Mermaid />
         if (!inline && match?.[1] === "mermaid") {
             return (
                 <Mermaid chart={String(children).replace(/\n$/, "")} />
             );
         }
+
+        // ข. กรณีเป็น Code Block ทั่วไป (เช่น javascript, json, html)
         if (!inline) {
             return (
                 <div className="my-4 overflow-hidden rounded-md border border-border dark:border-border">
@@ -273,28 +310,114 @@ const markdownComponents: Components = {
                 </div>
             );
         }
+
+        // ค. กรณีเป็น Inline Code (ข้อความในบรรทัดที่มี ` ครอบ)
         return (
             <code
                 className={cn(
                     "rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-primary dark:bg-muted",
                     className
                 )}
+                {...props}
             >
                 {children}
             </code>
         );
     }) as Components["code"],
-};
+
+    // code: ((props) => {
+    //     type MarkdownCodeProps =
+    //         NonNullable<Components["code"]> extends React.ComponentType<infer P>
+    //         ? P
+    //         : never;
+    //     const p = props as unknown as MarkdownCodeProps;
+    //     const inline = Boolean((p as unknown as { inline?: boolean }).inline);
+    //     const className = (p as unknown as { className?: string }).className;
+    //     const children = (p as unknown as { children?: React.ReactNode }).children;
+    //     const match = /language-(\w+)/.exec(className || "");
+    //     if (!inline && match?.[1] === "mermaid") {
+    //         return (
+    //             <Mermaid chart={String(children).replace(/\n$/, "")} />
+    //         );
+    //     }
+    //     if (!inline) {
+    //         return (
+    //             <div className="my-4 overflow-hidden rounded-md border border-border dark:border-border">
+    //                 <div className="flex items-center bg-muted px-3 py-1 font-mono text-xs text-muted-foreground dark:bg-muted">
+    //                     {match ? match[1] : "code"}
+    //                 </div>
+    //                 <SyntaxHighlighter
+    //                     style={vscDarkPlus as Record<string, React.CSSProperties>}
+    //                     language={match ? match[1] : "text"}
+    //                     PreTag="div"
+    //                     className="!m-0 !bg-neutral-950 text-sm"
+    //                 >
+    //                     {String(children).replace(/\n$/, "")}
+    //                 </SyntaxHighlighter>
+    //             </div>
+    //         );
+    //     }
+    //     return (
+    //         <code
+    //             className={cn(
+    //                 "rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-primary dark:bg-muted",
+    //                 className
+    //             )}
+    //         >
+    //             {children}
+    //         </code>
+    //     );
+    // }) as Components["code"],
+});
 
 export function ChatView({ onChatTitleChange }: ChatViewProps) {
+    const { chatSessionId, updateSessionTitle } = useChatShell();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isComposing, setIsComposing] = useState(false);
+
+    useEffect(() => {
+        if (!chatSessionId) return;
+        const savedHistory = localStorage.getItem(`mot_chat_history_${chatSessionId}`);
+        if (savedHistory) {
+            try {
+                const parsed = JSON.parse(savedHistory);
+                if (Array.isArray(parsed)) {
+                    setMessages(parsed);
+                } else {
+                    setMessages([]);
+                }
+            } catch (e) {
+                console.error("Failed to parse chat history", e);
+                setMessages([]);
+            }
+        } else {
+            setMessages([]);
+        }
+    }, [chatSessionId]);
+
+    useEffect(() => {
+        if (!chatSessionId) return;
+        if (messages.length > 0) {
+            localStorage.setItem(`mot_chat_history_${chatSessionId}`, JSON.stringify(messages));
+
+            const firstUser = messages.find(m => m.role === "user");
+            if (firstUser) {
+                const title = firstUser.content.trim().slice(0, 40) + (firstUser.content.length > 40 ? "…" : "");
+                updateSessionTitle(chatSessionId, title);
+            }
+        } else {
+            localStorage.removeItem(`mot_chat_history_${chatSessionId}`);
+        }
+    }, [messages, chatSessionId, updateSessionTitle]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { selectedKBs, knowledgeBases } = useKB();
+
+    const currentKb = selectedKBs.length > 0 ? selectedKBs[0] : "local";
+    const memoizedComponents = useMemo(() => getMarkdownComponents(currentKb), [currentKb]);
 
     const scrollToBottom = useCallback(() => {
         const el = scrollRef.current;
@@ -432,7 +555,7 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                             <div className="mb-6 space-y-1.5">
                                 <h1 className="text-2xl font-normal tracking-tight text-foreground">
                                     สวัสดีครับ{" "}
-                                    <span className="font-extrabold">ADMIN</span>
+                                    <span className="font-extrabold">Nattapat</span>
                                 </h1>
                                 <p className="text-lg font-semibold leading-7 text-foreground">
                                     วันนี้ต้องการให้ช่วยเรื่องใดครับ?
@@ -443,16 +566,16 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                                     RAG
                                 </p>
                             </div>
-                            <div className="flex max-w-4xl flex-nowrap justify-center gap-1.5 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            <div className="mx-auto flex w-full max-w-lg flex-col gap-2 pb-2">
                                 {SUGGESTIONS.map((label) => (
                                     <button
                                         key={label}
                                         type="button"
                                         onClick={() => setInput(label)}
-                                        className="flex h-8 min-w-[134px] w-fit shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-border bg-white px-3 py-2 transition-all hover:bg-muted/50"
+                                        className="flex w-full items-start justify-start gap-3 rounded-lg border border-border bg-white px-4 py-3 transition-all hover:border-primary/30 hover:bg-muted/50 dark:bg-card dark:hover:bg-muted shadow-sm"
                                     >
-                                        <ChevronRight className="h-4 w-4 shrink-0 text-[#525252]" />
-                                        <span className="text-center text-xs font-normal leading-[133%] text-foreground">
+                                        <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[#525252]" />
+                                        <span className="text-left text-sm font-medium leading-relaxed text-foreground">
                                             {label}
                                         </span>
                                     </button>
@@ -561,7 +684,7 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                                     >
                                         <ReactMarkdown
                                             remarkPlugins={[remarkGfm]}
-                                            components={markdownComponents}
+                                            components={memoizedComponents}
                                         >
                                             {msg.content}
                                         </ReactMarkdown>
@@ -594,24 +717,24 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                                                             onClick={() => {
                                                                 const kb =
                                                                     typeof doc.metadata?.knowledge_base ===
-                                                                    "string"
+                                                                        "string"
                                                                         ? String(doc.metadata.knowledge_base)
                                                                         : selectedKBs.length === 1
-                                                                          ? selectedKBs[0]
-                                                                          : "local";
+                                                                            ? selectedKBs[0]
+                                                                            : "local";
                                                                 const name =
                                                                     doc.file_name ||
                                                                     `${doc.file_id}.pdf`;
                                                                 const directUrl =
                                                                     typeof doc.metadata?.file_url ===
                                                                         "string" &&
-                                                                    doc.metadata.file_url.trim()
+                                                                        doc.metadata.file_url.trim()
                                                                         ? doc.metadata.file_url.trim()
                                                                         : typeof doc.metadata?.minio_url ===
-                                                                              "string" &&
+                                                                            "string" &&
                                                                             doc.metadata.minio_url.trim()
-                                                                          ? doc.metadata.minio_url.trim()
-                                                                          : "";
+                                                                            ? doc.metadata.minio_url.trim()
+                                                                            : "";
                                                                 window.open(
                                                                     `/chat/previews/${encodeURIComponent(
                                                                         doc.file_id
@@ -628,7 +751,11 @@ export function ChatView({ onChatTitleChange }: ChatViewProps) {
                                                             <CardContent className="p-3">
                                                                 <div className="flex items-start gap-2.5">
                                                                     <div className="rounded-md border border-border bg-white p-2 shadow-sm transition-colors group-hover:border-primary/20 group-hover:text-primary dark:border-border dark:bg-card">
-                                                                        <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                                                        {doc.file_name?.toLowerCase().endsWith(".xlsx") || doc.file_name?.toLowerCase().endsWith(".xls") || doc.file_name?.toLowerCase().endsWith(".csv") ? (
+                                                                            <FileSpreadsheet className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                                                        ) : (
+                                                                            <FileText className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                                                        )}
                                                                     </div>
                                                                     <div className="min-w-0 flex-1 space-y-1">
                                                                         <h4 className="truncate pr-2 text-sm font-medium leading-tight text-foreground transition-colors group-hover:text-primary dark:text-foreground">

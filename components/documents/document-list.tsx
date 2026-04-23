@@ -302,9 +302,9 @@ export function DocumentList({
         <div className="flex h-full w-full min-h-0 flex-col overflow-hidden border-r border-border bg-background">
             {/* Toolbar */}
             <div className="shrink-0 space-y-3 border-b border-border bg-card/30 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="relative flex flex-wrap items-center w-full justify-between">
-                        <div className="w-7/12">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3">
+                    <div className="relative flex flex-col md:flex-row items-start md:items-center w-full justify-between gap-3">
+                        <div className="w-full md:w-1/3">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="ค้นหาไฟล์..."
@@ -355,7 +355,8 @@ export function DocumentList({
                             </AlertDialogContent>
                         </AlertDialog> */}
 
-                        <div className="flex flex-row items-center gap-2 w-1/3">
+                        {/* <div className="flex flex-row items-center gap-2 w-1/3"> */}
+                        <div className="flex flex-row flex-wrap xl:flex-nowrap items-center gap-2 w-full md:w-auto">
                             <Select
                                 value={fileFilter}
                                 onValueChange={(v) => {
@@ -422,7 +423,7 @@ export function DocumentList({
                             >
                                 <Button
                                     size="sm"
-                                    className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                                    className="hidden sm:flex gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
                                 >
                                     <Upload className="h-4 w-4" />
                                     อัปโหลด
@@ -432,8 +433,8 @@ export function DocumentList({
                                 onUploadComplete={onUploadComplete}
                                 knowledgeBase={activeKB || "local"}
                             >
-                                <Button size="icon" variant="outline" className="h-9 w-9 md:hidden">
-                                    <Plus className="h-4 w-4" />
+                                <Button size="icon" variant="outline" className="h-9 w-9 sm:hidden shrink-0 bg-primary text-primary-foreground">
+                                    <Upload className="h-4 w-4" />
                                 </Button>
                             </UploadDialog>
                         </div>
@@ -500,7 +501,7 @@ export function DocumentList({
                                 : "ไม่พบไฟล์ที่ตรงกับการค้นหา"}
                         </div>
                     ) : viewMode === "grid" ? (
-                        <div className="grid grid-cols-6 gap-7">
+                        <div className="grid grid-cols-2 min-[500px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-7">
                             {paged.map((doc, i) => {
                                 const style = typeStyle(doc.filename);
                                 const selected = selectedFile === doc.file_id;
