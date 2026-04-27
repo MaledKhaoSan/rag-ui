@@ -128,7 +128,7 @@ const SUGGESTIONS = [
     "ระบบ Single Window @ Maine Department แบ่งเมนูออกเป็นกี่ประเภทหลัก",
     "เอกสารที่ต้องใช้ลงทะเบียนนิติบุคคลในระบบ SW@MD",
     "ขั้นตอนชำระค่าปรับ กรณีเรือไม่แจ้งเทียบท่าเกิน 24 ชม.",
-    "ช่องทางการชำระเงินค่าบริการนำร่องผ่านระบบอิเล็กทรอนิกส์",
+    "จากรายงานสรุปการรับเงินค่าบริการ ช่วยรวมยอดเงินทั้งหมดให้หน่อย",
 ];
 
 const getMarkdownComponents = (currentKb: string): Components => ({
@@ -315,7 +315,7 @@ const getMarkdownComponents = (currentKb: string): Components => ({
         return (
             <code
                 className={cn(
-                    "rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-primary dark:bg-muted",
+                    "rounded-md bg-primary/10 px-1.5 py-0.5 text-[0.85em] font-medium text-primary dark:bg-primary/20 dark:text-primary",
                     className
                 )}
                 {...props}
