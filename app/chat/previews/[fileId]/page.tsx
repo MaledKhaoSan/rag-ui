@@ -7,8 +7,24 @@ import { PreviesCsv } from "../previe_csv";
 import { cn } from "@/lib/utils";
 
 function extOf(name: string) {
-    const m = (name || "").match(/\.([^.]+)$/);
-    return (m?.[1] || "").toLowerCase();
+    const lower = (name || "").toLowerCase();
+    const knownExts = ["pdf", "csv", "txt", "xlsx", "xls", "xlsm"];
+    
+    let lastIndex = -1;
+    let foundExt = "";
+    
+    for (const ext of knownExts) {
+        const idx = lower.lastIndexOf(`.${ext}`);
+        if (idx > lastIndex) {
+            lastIndex = idx;
+            foundExt = ext;
+        }
+    }
+    
+    if (foundExt) return foundExt;
+    
+    const m = lower.match(/\.([^.\s]+)/);
+    return m?.[1] || "";
 }
 
 function PreviewInner() {

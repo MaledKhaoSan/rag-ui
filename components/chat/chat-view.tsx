@@ -155,10 +155,14 @@ const getMarkdownComponents = (currentKb: string): Components => ({
                 ? `${src}.png`
                 : src;
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-        const fullSrc =
-            typeof src === "string" && !src.startsWith("http")
-                ? `${apiBase}/api/v1/rag/assets/${currentKb}/${fileName}`
-                : (src as string);
+        let fullSrc = src as string;
+        if (typeof src === "string" && !src.startsWith("http")) {
+            if (typeof fileName === "string" && fileName.includes("/")) {
+                fullSrc = `${apiBase}/api/v1/rag/assets/${fileName}`;
+            } else {
+                fullSrc = `${apiBase}/api/v1/rag/assets/${currentKb}/${fileName}`;
+            }
+        }
         return (
             <img
                 src={fullSrc}
@@ -208,10 +212,11 @@ const getMarkdownComponents = (currentKb: string): Components => ({
     ),
     a: ({ href, children, ...props }) => {
         if (href?.startsWith("#file:")) {
-            const match = href.match(/#file:([A-Za-z0-9-]+)(?:\?page=(\d+))?/);
+            const match = href.match(/#file:(?:([A-Za-z0-9-_]+)\/)?([A-Za-z0-9-]+)(?:\?page=(\d+))?/);
             if (match) {
-                const fileId = match[1];
-                const page = match[2];
+                const kb = match[1] || currentKb;
+                const fileId = match[2];
+                const page = match[3];
                 const nameGuess =
                     typeof children === "string"
                         ? children
@@ -229,7 +234,7 @@ const getMarkdownComponents = (currentKb: string): Components => ({
                         onClick={() => {
                             const hash = page ? `#page=${encodeURIComponent(page)}` : "";
                             window.open(
-                                `/chat/previews/${encodeURIComponent(fileId)}?kb=${encodeURIComponent(currentKb)}&name=${encodeURIComponent(
+                                `/chat/previews/${encodeURIComponent(fileId)}?kb=${encodeURIComponent(kb)}&name=${encodeURIComponent(
                                     `${nameGuess}`
                                 )}${hash}`,
                                 "_blank"
